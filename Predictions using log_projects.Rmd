@@ -1,0 +1,109 @@
+---
+title: "Predict raised for projects using log"
+author: "Jaymeen Gandhi"
+date: "5/25/2020"
+output: word_document
+---
+
+```{r}
+require(tidyverse)
+```
+
+```{r}
+require(modelr)
+```
+
+
+```{r}
+projects = read_csv('C:/Users/jayme/Downloads/projects.csv')
+projects
+```
+
+```{r}
+f=raised ~ backers + duration
+model = lm(f,data = projects)
+summary(model)
+```
+
+
+
+## We will be predicting the raised variable based upon other variables.
+## Since if we plot the raised variable graph it is positively scewed so we transform it to log.
+
+```{r}
+projects_l = projects %>% mutate(log_raised=log(raised))
+projects_l
+```
+
+##Since we need to get rid of infinities we filter out projects greater than 1.
+
+```{r}
+projects = projects %>% filter(raised > 1)
+projects1 =projects %>% mutate(log_raised = log(raised))
+projects1
+```
+
+
+```{r}
+f1 = log_raised ~ backers + duration
+model_l = lm(f1, data = projects1)
+summary(model_l)
+```
+
+```{r}
+predictions = predict(model_l , data =projects1)
+projects %>% mutate(predictions = predictions)
+#exp(predictions)
+
+projects2=projects %>% mutate(predictions = exp(predictions))
+projects2
+
+```
+
+
+##Now let us understand the difference why to use log. So lets consider we are nor using any log.
+## creating a new model for comparision 
+##Creating a model without any log
+```{r}
+f = raised ~ duration
+model_without_log = lm(f, data = projects)
+summary(model_without_log)
+predictions = predict(model_without_log,data = projects)
+project3=projects %>% mutate(predict = predictions,err=predict-raised) 
+project3
+project3 %>% summarise(rmse = sqrt(mean(err^2)),rrmse = sqrt(mean(err^2/raised)))
+```
+
+##We can classify that, based upon the rmse values(error values) of normal model and the another of the log model.
+
+```{r}
+projects4 = projects %>% mutate(log_raised=log(raised))
+
+f1<-log_raised~ duration
+
+model_with_log=lm(f1, data=projects4)
+summary(model_with_log)
+l_predictions=predict(model_with_log, projects4)
+predictions=exp(l_predictions)
+
+projects4 =projects%>%mutate(predict=predictions, err=predict-raised)
+projects4%>%summarise(rmse=sqrt(mean(err^2)) , rrmse=sqrt(mean((err/raised)^2)))
+```
+
+
+
+##Transforming the input variable.
+
+```{r}
+f4= raised ~ goal
+model2 = lm(f4,data = projects)
+summary(model2)
+rmse(model2,data =projects )
+```
+
+```{r}
+f5 = raised ~ sqrt(goal)
+model3 = lm(f5,data = projects)
+summary(model3)
+rmse(model3,data = projects)
+```
